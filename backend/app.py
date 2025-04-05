@@ -39,13 +39,13 @@ def NewDB(dbName:request):
             print(deltaPath)
             df=spark.read.option("header","true").option("inferSchema","true").csv(csvPath)
             df = df.toDF(*[clean_column_name(col) for col in df.columns])
-            df.write.format("delta").mode("overwrite").save(deltaPath)
+            if not os.path.exists(deltaPath):
+                df.write.format("delta").mode("overwrite").save(deltaPath)
             spark.sql(f"""
                 CREATE TABLE IF NOT EXISTS {name}.{fn}
                 USING DELTA
                 LOCATION '{deltaPath}'
             """)
-            spark.sql(f"select * from {name}.{fn}").show()
         
 
 
