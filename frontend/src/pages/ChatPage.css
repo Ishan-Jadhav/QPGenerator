@@ -1,0 +1,156 @@
+.chat-page {
+  display: flex; /* Use flexbox for layout */
+  height: 100vh;
+  max-width: 100%; /* Ensure it covers the full width */
+  position: relative;
+}
+
+.slider {
+  width: 200px; /* Fixed width for the slider */
+  background-color: #f0f0f0; /* Light background for the slider */
+  border-right: 1px solid #ccc; /* Add a border to separate the slider */
+  overflow-y: auto; /* Allow scrolling if content overflows */
+  position: relative;
+  transition: width 0.3s ease; /* Smooth transition for collapsing */
+}
+
+.slider.collapsed {
+  width: 40px; /* Reduced width when collapsed */
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  width: 30px;
+  height: 30px;
+  background-color: #61dafb;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.chat-content {
+  flex: 1; /* Take up the remaining space */
+  display: flex;
+  flex-direction: column;
+  padding: 0 20px; /* Adds space on the left and right */
+  position: relative;
+}
+
+.chat-header {
+  display: flex;
+  justify-content: center; /* Centers the header content horizontally */
+  align-items: center; /* Vertically centers the content */
+  padding: 10px 20px;
+  background-color: #f4f5f7;
+  color: #0b0101;
+  height: 70px; /* Increased height for better spacing */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Adds a subtle shadow */
+  position: relative; /* Allows absolute positioning of child elements */
+}
+
+.chat-header h1 {
+  position: absolute; /* Allows independent positioning */
+  left: 20px; /* Aligns the name to the left */
+  margin: 0;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.header-controls {
+  position: absolute; /* Allows independent positioning */
+  left: 50%; /* Centers horizontally */
+  transform: translateX(-50%); /* Adjusts for the element's width */
+  display: flex; /* Use flexbox for alignment */
+  align-items: center; /* Vertically center the children */
+  gap: 15px; /* Adds spacing between the select and button */
+  background-color: #ffffff; /* Adds a background for better visibility */
+  padding: 5px 15px; /* Adds padding for better spacing */
+  border: 1px solid #ccc; /* Adds a border for a clean look */
+  border-radius: 8px; /* Rounds the corners */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Adds a subtle shadow */
+  z-index: 1; /* Ensures it stays above other elements */
+}
+
+.header-controls select,
+.header-controls button {
+  padding: 8px 12px; /* Adds padding for better appearance */
+  border: 1px solid #ccc; /* Adds a border for consistency */
+  border-radius: 4px; /* Rounds the corners */
+  background-color: #f9f9f9; /* Light background for inputs */
+  cursor: pointer;
+}
+
+.header-controls button {
+  background-color: #61dafb; /* Button-specific background */
+  color: #fff; /* White text for contrast */
+  border: none; /* Removes the border */
+}
+
+.header-controls button:hover {
+  background-color: #21a1f1; /* Darker shade on hover */
+}
+
+.chat-container {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  overflow-y: auto; /* Enables scrolling */
+  background-color: #f9f9f9;
+  margin-top: 60px; /* Leaves space for the fixed input */
+}
+
+.chat-message {
+  margin: 5px 0;
+}
+
+.chat-message.user {
+  text-align: right;
+}
+
+.chat-message.model {
+  text-align: left;
+}
+
+.chat-input {
+  position: fixed; /* Makes the input fixed */
+  bottom: 10px; /* Positions it above the bottom */
+  left: 220px; /* Leaves space for the slider */
+  right: 20px; /* Aligns with the page padding */
+  background-color: #fff;
+  display: flex;
+  padding: 10px;
+  border-top: 1px solid #ccc;
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1); /* Adds a shadow for better visibility */
+  transition: left 0.3s ease; /* Smooth transition for slider collapse */
+}
+
+.slider.collapsed + .chat-content .chat-input {
+  left: 60px; /* Adjusted for collapsed slider */
+}
+
+.chat-input input {
+  flex: 1;
+  margin-right: 10px;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.chat-input button {
+  padding: 5px 10px;
+  background-color: #61dafb;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.chat-input button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}

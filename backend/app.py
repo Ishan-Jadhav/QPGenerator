@@ -1,6 +1,12 @@
+# ToDO: clean the column names to avoid error in spark sql 
+
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from fastapi import FastAPI, UploadFile, File, Form
+from typing import List
 from pyspark.sql import SparkSession
 from pydantic import BaseModel
+import shutil
 import os
 import re
 import json
@@ -66,7 +72,7 @@ def UserQuery(query:query):
     message=query.userQuery
     databasePath=os.path.join("/app","data",dbname)
     metadataPath=os.path.join(databasePath,"metadata.json")
-    with open(metadataPath,"r") as file:
+    with open(metadataPath,"r", encoding="utf-8") as file:
         metadata=json.load(file)
     prompt=make_sql_prompt(metadata,message)
     completion = client.chat.completions.create(
@@ -107,7 +113,31 @@ def UserQuery(query:query):
     
     result.show()
 
+@app.get("/database-names")
+def get_dbs():
+    directoryPath=os.path.join("/app","data")
+    names=os.listdir(directoryPath)
+    names=[name for name in names if os.path.isdir(os.path.join(directoryPath, name))]
+    return JSONResponse(content={"folders":names})
 
 
+@app.get("/upload-database")
+async def upload_data(
+    db_name: str = Form(...),
+    metadata_file: UploadFile = File(...),
+    table_files: List[UploadFile] = File(...)
+    ):
+    os.makedirs(f"/app/data/{db_name}", exist_ok=True)
+    meta_path = f"/app/data/{db_name}/metadata.json"
+    with open(meta_path, "wb") as f:
+        shutil.copyfileobj(metadata_file.file, f)
+    for file in table_files:
+        file_path = f"/app/data/{db_name}/{file.filename}"
+        with open(file_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+
+    
+
+    return {"status": "success", "message": "Files uploaded"}
     
 

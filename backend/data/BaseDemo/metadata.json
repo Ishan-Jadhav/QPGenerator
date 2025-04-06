@@ -1,0 +1,21 @@
+{
+  "database_name":"BaseDemo",
+  "tables": {
+    "customers_1000": {
+      "columns": {
+        "index": "STRING",
+        "CustomerId": "STRING",
+        "FirstName": "STRING",
+        "LastName": "STRING",
+        "Company": "STRING",
+        "City": "STRING",
+        "Country": "STRING",
+        "Phone1": "STRING",
+        "Phone2": "STRING",
+        "Email": "STRING",
+        "SubscriptionDate": "STRING",
+        "Website": "STRING"
+      }
+    }
+  }
+}
