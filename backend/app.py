@@ -1,8 +1,8 @@
 # ToDO: clean the column names to avoid error in spark sql 
-
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 from pyspark.sql import SparkSession
 from pydantic import BaseModel
@@ -37,10 +37,17 @@ spark = SparkSession.builder \
     .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
     .getOrCreate()
 
-spark.sql("show databases").show()
+# Allow all origins (for development)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.post("/newDB")
-def NewDB(dbName:request):
+@app.post("/registerDB")
+def register(dbName:request):
     name=dbName.dbName
     databasePath=os.path.join("/app","data",name)
     files=os.walk(databasePath)
@@ -50,18 +57,15 @@ def NewDB(dbName:request):
             fileName=i
             if len(fileName.split("."))==2 and fileName.split(".")[1]=="csv":
                 fn=clean_column_name(fileName.split(".")[0])
-                csvPath=os.path.join(databasePath,fileName)
                 deltaPath=os.path.join(databasePath,fn)
-                print(deltaPath)
-                df=spark.read.option("header","true").option("inferSchema","true").csv(csvPath)
-                df = df.toDF(*[clean_column_name(col) for col in df.columns])
-                if not os.path.exists(deltaPath):
-                    df.write.format("delta").mode("overwrite").save(deltaPath)
                 spark.sql(f"""
                     CREATE TABLE IF NOT EXISTS {name}.{fn}
                     USING DELTA
                     LOCATION '{deltaPath}'
                 """)
+    return {"status": "success", "message": "Registered"}
+
+
         
 
 
@@ -95,6 +99,7 @@ def UserQuery(query:query):
             result=spark.sql(response)
             error_resolved=True
         except Exception as error:
+            print(error)
             refined_prompt=make_sql_refinement_prompt(metadata,message,response,error)
             completion = client.chat.completions.create(
                 model="meta-llama/Llama-3.3-70B-Instruct",
@@ -111,7 +116,9 @@ def UserQuery(query:query):
             response=completion.choices[0].message.content
             count+=1
     
-    result.show()
+    result=result.collect()
+    finalResult=[row.asDict() for row in result]
+    return JSONResponse(content={"queryResp":finalResult})
 
 @app.get("/database-names")
 def get_dbs():
@@ -121,7 +128,33 @@ def get_dbs():
     return JSONResponse(content={"folders":names})
 
 
-@app.get("/upload-database")
+def NewDB(dbName):
+    name=dbName
+    databasePath=os.path.join("/app","data",name)
+    files=os.walk(databasePath)
+    spark.sql(f"create database if not exists {name}")
+    for file in files:
+        for i in file[2]:
+            fileName=i
+            if len(fileName.split("."))==2 and fileName.split(".")[1]=="csv":
+                fn=clean_column_name(fileName.split(".")[0])
+                csvPath=os.path.join(databasePath,fileName)
+                deltaPath=os.path.join(databasePath,fn)
+                print(deltaPath)
+                df=spark.read.option("header","true").option("inferSchema","true").csv(csvPath)
+                df = df.toDF(*[clean_column_name(col) for col in df.columns])
+                if not os.path.exists(deltaPath):
+                    df.write.format("delta").mode("overwrite").save(deltaPath)
+                spark.sql(f"""
+                    CREATE TABLE IF NOT EXISTS {name}.{fn}
+                    USING DELTA
+                    LOCATION '{deltaPath}'
+                """)
+    
+    return {"status": "success", "message": "Created New DB"}
+
+
+@app.post("/upload-database")
 async def upload_data(
     db_name: str = Form(...),
     metadata_file: UploadFile = File(...),
@@ -136,7 +169,7 @@ async def upload_data(
         with open(file_path, "wb") as f:
             shutil.copyfileobj(file.file, f)
 
-    
+    NewDB(db_name)
 
     return {"status": "success", "message": "Files uploaded"}
     

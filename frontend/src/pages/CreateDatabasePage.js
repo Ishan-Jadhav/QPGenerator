@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import './CreateDatabasePage.css';
-
+import { useNavigate } from 'react-router-dom';
 function CreateDatabasePage() {
   const [dbName, setDbName] = useState('');
   const [tableFiles, setTableFiles] = useState([]);
   const [metadataFile, setMetadataFile] = useState(null);
-
+  const navigate = useNavigate();
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData();
@@ -16,13 +16,14 @@ function CreateDatabasePage() {
     });
 
     try {
-      const response = await fetch("http://serverBackend:8000/upload", {
+      const response = await fetch("http://localhost:8000/upload-database", {
         method: "POST",
         body: formData,
       });
 
       const result = await response.json();
       console.log("Server response:", result);
+      navigate("/")
     } catch (err) {
       console.error("Error uploading:", err);
     }

@@ -34,22 +34,29 @@
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-.chat-content {
+.chat-section {
   flex: 1; /* Take up the remaining space */
   display: flex;
   flex-direction: column;
-  padding: 0 20px; /* Adds space on the left and right */
-  position: relative;
+  transition: margin-left 0.3s ease;
+  margin-top: 10px; /* Reduced space to align closer to the title row */
+  overflow: hidden; /* Prevents the chat section from expanding horizontally */
+  max-width: calc(100vw - 200px); /* Ensures the section stays within the viewport, accounting for the slider width */
+  box-sizing: border-box; /* Includes padding and borders in width calculations */
+}
+
+.chat-section.expanded {
+  margin-left: 40px; /* Adjusted for collapsed slider */
 }
 
 .chat-header {
   display: flex;
   justify-content: center; /* Centers the header content horizontally */
   align-items: center; /* Vertically centers the content */
-  padding: 10px 20px;
+  padding: 5px 10px; /* Reduced padding for a smaller appearance */
   background-color: #f4f5f7;
   color: #0b0101;
-  height: 70px; /* Increased height for better spacing */
+  height: 50px; /* Reduced height for a smaller header */
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Adds a subtle shadow */
   position: relative; /* Allows absolute positioning of child elements */
 }
@@ -58,7 +65,7 @@
   position: absolute; /* Allows independent positioning */
   left: 20px; /* Aligns the name to the left */
   margin: 0;
-  font-size: 24px;
+  font-size: 32px; /* Reduced font size for a smaller appearance */
   font-weight: bold;
 }
 
@@ -68,18 +75,19 @@
   transform: translateX(-50%); /* Adjusts for the element's width */
   display: flex; /* Use flexbox for alignment */
   align-items: center; /* Vertically center the children */
-  gap: 15px; /* Adds spacing between the select and button */
+  gap: 10px; /* Reduced spacing between the select and button */
   background-color: #ffffff; /* Adds a background for better visibility */
-  padding: 5px 15px; /* Adds padding for better spacing */
+  padding: 3px 10px; /* Reduced padding for a smaller appearance */
   border: 1px solid #ccc; /* Adds a border for a clean look */
-  border-radius: 8px; /* Rounds the corners */
+  border-radius: 6px; /* Rounds the corners */
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Adds a subtle shadow */
   z-index: 1; /* Ensures it stays above other elements */
 }
 
 .header-controls select,
 .header-controls button {
-  padding: 8px 12px; /* Adds padding for better appearance */
+  padding: 6px 10px; /* Reduced padding for better appearance */
+  font-size: 12px; /* Reduced font size for a smaller appearance */
   border: 1px solid #ccc; /* Adds a border for consistency */
   border-radius: 4px; /* Rounds the corners */
   background-color: #f9f9f9; /* Light background for inputs */
@@ -98,59 +106,97 @@
 
 .chat-container {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* Adds spacing between messages */
+  overflow-y: auto; /* Enables vertical scrolling if content overflows */
+  overflow-x: hidden; /* Prevents horizontal scrolling */
   padding: 10px;
-  border: 1px solid #ccc;
-  overflow-y: auto; /* Enables scrolling */
+  padding-bottom: 80px; /* Adds padding equal to or slightly larger than the chat-input height */
   background-color: #f9f9f9;
-  margin-top: 60px; /* Leaves space for the fixed input */
+  margin: 0 auto; /* Centers the chat container horizontally */
+  max-width: 80%; /* Reduced width for the chat container */
+  margin-top: 10px; /* Reduced space to move closer to the title row */
+  border-radius: 10px; /* Adds rounded corners */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Adds a subtle shadow */
+  width: 100%; /* Ensures it stretches to the allowed width */
+  max-height: 500px; /* Sets a maximum height for the container */
+  box-sizing: border-box; /* Ensures padding is included in width/height calculations */
 }
 
 .chat-message {
-  margin: 5px 0;
+  max-width: 70%; /* Slightly wider messages */
+  padding: 15px; /* Adds more padding for better readability */
+  border-radius: 15px; /* More rounded corners */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow for messages */
+  word-wrap: break-word;
+  margin-bottom: 10px; /* Adds spacing between messages */
 }
 
 .chat-message.user {
+  align-self: flex-end; /* Aligns user messages to the right */
+  background-color: #0078d4; /* Matches the blue theme */
+  color: #ffffff; /* White text for contrast */
   text-align: right;
+  max-width: 40%; /* Reduced width for smaller message sections */
+  padding: 1%; /* Reduced padding for less space around the text */
+  font-size: 15px; /* Adjusted font size for consistency */
+  border-radius: 6px; /* Slightly less rounded corners for a tighter look */
 }
 
 .chat-message.model {
-  text-align: left;
+  align-self: left; /* Centers the model messages horizontally */
+  background-color: #f3f3f3; /* Light gray background for model messages */
+  color: #333333; /* Darker text for readability */
+  text-align: center; /* Centers the text inside the message */
+  max-width: 70%; /* Adjusts the width of the model messages */
+  padding: 15px; /* Adds padding for better readability */
+  border-radius: 15px; /* Adds rounded corners */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow for messages */
+  word-wrap: break-word; /* Ensures long words break properly */
+  position: relative; /* Allows positioning of child elements */
 }
+
+.chat-message.model table {
+  margin: 0 auto 0 0; /* Aligns the table to the left of the center */
+  text-align: center; /* Ensures table content is left-aligned */
+  width: auto; /* Allows the table to size dynamically */
+  display: block; /* Prevents the table from affecting the centering of the message */
+}
+
 
 .chat-input {
-  position: fixed; /* Makes the input fixed */
-  bottom: 10px; /* Positions it above the bottom */
-  left: 220px; /* Leaves space for the slider */
-  right: 20px; /* Aligns with the page padding */
-  background-color: #fff;
+  position: fixed; /* Keeps the input fixed at the bottom */
+  bottom: 20px; /* Adds more spacing from the bottom */
+  left: 200px; /* Matches the default slider width */
+  right: 20px; /* Adds more spacing on the right */
+  max-width: 600px; /* Reduced width for the input section */
+  margin: 0 auto; /* Centers the input section horizontally */
+  background-color: #f9f9f9; /* Light gray background for the input */
   display: flex;
-  padding: 10px;
-  border-top: 1px solid #ccc;
-  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1); /* Adds a shadow for better visibility */
-  transition: left 0.3s ease; /* Smooth transition for slider collapse */
+  padding: 10px; /* Reduced padding for a smaller appearance */
+  border-top: 2px solid #e0e0e0; /* Slightly thicker border */
+  border-radius: 15px; /* More rounded corners */
+  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.1); /* Adds a shadow for better visibility */
+  transition: left 0.3s ease, max-width 0.3s ease;
 }
 
-.slider.collapsed + .chat-content .chat-input {
-  left: 60px; /* Adjusted for collapsed slider */
-}
-
-.chat-input input {
+.chat-input textarea {
   flex: 1;
   margin-right: 10px;
-  padding: 5px;
+  padding: 8px; /* Reduced padding for a smaller input field */
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 8px; /* Slightly more rounded corners */
+  font-size: 14px; /* Reduced font size for a smaller appearance */
+  resize: none; /* Prevents resizing */
+  height: 50px; /* Adjust height as needed */
 }
 
 .chat-input button {
-  padding: 5px 10px;
-  background-color: #61dafb;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  display: none; /* Hides the send button */
 }
 
-.chat-input button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
+.slider.collapsed + .chat-section .chat-input {
+  left: 40px; /* Adjusts for the collapsed slider width */
+  max-width: 50%; /* Adjusts for the collapsed slider width */
 }

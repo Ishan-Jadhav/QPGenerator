@@ -1,26 +1,69 @@
-import React, { useState } from 'react';
+// todo: everything is ready, just call backend and update messages
+
+import React, { useState,useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ChatPage.css';
-
+import TableComponent from '../components/TableComponent.js'
 function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isReplying, setIsReplying] = useState(false);
   const [isSliderCollapsed, setIsSliderCollapsed] = useState(false); // State for slider
+  const [databaseNames,setDatabaseNames]=useState([])
   const navigate = useNavigate();
 
-  const handleSend = () => {
+  useEffect(()=>{
+    async function fetchDbNames(){
+      const response=await fetch("http://localhost:8000/database-names",{method: "GET"});
+      const names=await response.json()
+      //console.log(names.folders)
+      setDatabaseNames(names.folders);
+    }
+    fetchDbNames();
+
+  },[])
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault(); // Prevents adding a new line
+      handleSend(); // Calls the send function
+    }
+  };
+  const handleSend = async () => {
     if (!input.trim()) return;
-    const userMessage = { sender: 'user', text: input };
+    const userMessage = { sender: 'user',type:'text', content: input };
     setMessages([...messages, userMessage]);
     setInput('');
-    setIsReplying(true);
 
-    setTimeout(() => {
-      const modelReply = { sender: 'model', text: 'This is a static reply from the model.' };
-      setMessages((prev) => [...prev, modelReply]);
-      setIsReplying(false);
-    }, 2000);
+    setIsReplying(true);
+    const dbName = document.getElementById("databaseChoice").value;
+    console.log(dbName)
+    await fetch("http://localhost:8000/registerDB",{
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body:JSON.stringify({
+        "dbName":String(dbName)
+      })
+    });
+    const queryRes=await fetch("http://localhost:8000/userQuery",{
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body:JSON.stringify({
+        "dbName":String(dbName),
+        "userQuery": String(input)
+      })
+    });
+
+    const table=await queryRes.json()
+
+
+    const modelReply = { sender: 'model', type:'table',content: table.queryResp };
+    setMessages((prev) => [...prev, modelReply]);
+    setIsReplying(false);
+
   };
 
   return (
@@ -34,33 +77,44 @@ function ChatPage() {
         </button>
         {!isSliderCollapsed && <p>Slider Content</p>}
       </div>
-      <div className="chat-content">
+      <div className={`chat-section ${isSliderCollapsed ? 'expanded' : ''}`}>
         <header className="chat-header">
           <h1>QPGenerator</h1>
           <div className="header-controls">
-            <select>
-              <option value="">Select Database</option>
-              <option value="db1">Database 1</option>
-              <option value="db2">Database 2</option>
+            <select id="databaseChoice">
+              {databaseNames.map((val) => (
+                <option key={val} value={val}>
+                  {val}
+                </option>
+              ))}
             </select>
             <button onClick={() => navigate('/create-database')}>Create Database</button>
           </div>
         </header>
         <div className="chat-container">
-          {messages.map((msg, index) => (
-            <div key={index} className={`chat-message ${msg.sender}`}>
-              <p><strong>{msg.sender === 'user' ? 'You' : 'AI'}:</strong> {msg.text}</p>
-            </div>
-          ))}
+          {messages.map((msg, index) => {
+            let content;
+            if (msg.type === 'text') {
+              content = <p>{msg.content}</p>;
+            } else if (msg.type === 'table') {
+              content = <TableComponent data={msg.content} />;
+            }
+
+            return (
+              <div key={index} className={`chat-message ${msg.sender}`}>
+                {content}
+              </div>
+            );
+          })}
         </div>
         <div className="chat-input">
-          <input
-            type="text"
+          <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown} // Handles Enter and Shift+Enter
             disabled={isReplying}
+            placeholder="Type your message here..."
           />
-          <button onClick={handleSend} disabled={isReplying}>Send</button>
         </div>
       </div>
     </div>

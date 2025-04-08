@@ -1,0 +1,46 @@
+/* Wrapper for the table to enable scrolling */
+.table-wrapper {
+    max-height: 200px; /* Set a fixed height for the table's container */
+    overflow-y: auto; /* Enable vertical scrolling */
+    border: 1px solid #ddd; /* Add a border around the table */
+    border-radius: 5px; /* Round the corners */
+    padding: 5px; /* Add some padding around the table */
+    background-color: #ffffff; /* White background for better visibility */
+  }
+  
+  /* General table styling */
+  table {
+    width: 100%; /* Ensure the table takes up the full width of its container */
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    text-align: left;
+  }
+  
+  /* Header styling */
+  th {
+    background-color: #f4f4f4;
+    color: #333;
+    font-weight: bold;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+  }
+  
+  /* Row styling */
+  td {
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+  }
+  
+  /* Zebra striping for rows */
+  tbody tr:nth-child(odd) {
+    background-color: #f9f9f9;
+  }
+  
+  tbody tr:nth-child(even) {
+    background-color: #ffffff;
+  }
+  
+  /* Hover effect for rows */
+  tbody tr:hover {
+    background-color: #f1f1f1;
+  }
