@@ -57,10 +57,10 @@ function ChatPage() {
       })
     });
 
-    const table=await queryRes.json()
+    const resp=await queryRes.json()
 
 
-    const modelReply = { sender: 'model', type:'table',content: table.queryResp };
+    const modelReply = { sender: 'model', type:resp.type,content: resp.queryResp };
     setMessages((prev) => [...prev, modelReply]);
     setIsReplying(false);
 
@@ -98,6 +98,9 @@ function ChatPage() {
               content = <p>{msg.content}</p>;
             } else if (msg.type === 'table') {
               content = <TableComponent data={msg.content} />;
+            }
+            else if (msg.type === 'plot') {
+              content = <img src={msg.content} alt="Generated Plot"/>;
             }
 
             return (

@@ -9,12 +9,16 @@ from pydantic import BaseModel
 import shutil
 import os
 import re
+import io
 import json
 from huggingface_hub import InferenceClient
-from utils.prompts import make_sql_prompt,make_sql_refinement_prompt
+import matplotlib.pyplot as plt
+import seaborn as sns
+from utils.prompts import *
+import base64
 client = InferenceClient(
     provider="cerebras",
-    api_key="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",
+    api_key="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",
 )
 
 
@@ -67,17 +71,7 @@ def register(dbName:request):
 
 
         
-
-
-    
-@app.post("/userQuery")
-def UserQuery(query:query):
-    dbname=query.dbName
-    message=query.userQuery
-    databasePath=os.path.join("/app","data",dbname)
-    metadataPath=os.path.join(databasePath,"metadata.json")
-    with open(metadataPath,"r", encoding="utf-8") as file:
-        metadata=json.load(file)
+def sqlQuery(metadata,message):
     prompt=make_sql_prompt(metadata,message)
     completion = client.chat.completions.create(
         model="meta-llama/Llama-3.3-70B-Instruct",
@@ -99,7 +93,7 @@ def UserQuery(query:query):
             result=spark.sql(response)
             error_resolved=True
         except Exception as error:
-            print(error)
+            # print(error)
             refined_prompt=make_sql_refinement_prompt(metadata,message,response,error)
             completion = client.chat.completions.create(
                 model="meta-llama/Llama-3.3-70B-Instruct",
@@ -118,7 +112,92 @@ def UserQuery(query:query):
     
     result=result.collect()
     finalResult=[row.asDict() for row in result]
-    return JSONResponse(content={"queryResp":finalResult})
+    return finalResult
+
+def plotQuery(metadata,message):
+    prompt=get_plot_code_prompt(metadata,message)
+    completion = client.chat.completions.create(
+        model="meta-llama/Llama-3.3-70B-Instruct",
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        # tools=[model_tool],
+        tool_choice="auto",
+        max_tokens=500,
+    )
+    response=completion.choices[0].message.content
+    error_resolved=False
+    count=0
+    while not error_resolved and count<5:
+        try:
+            exec(response)
+            
+            error_resolved=True
+        except Exception as error:
+            # print(error)
+            plt.close()
+            refined_prompt=get_plot_code_refinement_prompt(message,metadata,response,error)
+            completion = client.chat.completions.create(
+                model="meta-llama/Llama-3.3-70B-Instruct",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": refined_prompt
+                    }
+                ],
+                # tools=[model_tool],
+                tool_choice="auto",
+                max_tokens=500,
+            )
+            response=completion.choices[0].message.content
+            count+=1
+    
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    img_bytes = buf.read()
+    img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+    buf.close()
+    plt.close()
+    finalResult=f"data:image/png;base64,{img_base64}"
+    return finalResult
+
+    
+@app.post("/userQuery")
+def UserQuery(query:query):
+    dbname=query.dbName
+    message=query.userQuery
+    databasePath=os.path.join("/app","data",dbname)
+    metadataPath=os.path.join(databasePath,"metadata.json")
+    with open(metadataPath,"r", encoding="utf-8") as file:
+        metadata=json.load(file)
+    
+    prompt=get_query_type_prompt(metadata,message)
+    completion = client.chat.completions.create(
+        model="meta-llama/Llama-3.3-70B-Instruct",
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        # tools=[model_tool],
+        tool_choice="auto",
+        max_tokens=500,
+    )
+    response=completion.choices[0].message.content
+
+    if response=="table":
+        finalResult=sqlQuery(metadata,message)
+    elif response=="plot":
+        finalResult=plotQuery(metadata,message)
+    else:
+        return JSONResponse(content={"type":response,"queryResp":"Not allowed to ask general questions without any plots or table"})
+
+    return JSONResponse(content={"type":response,"queryResp":finalResult})
 
 @app.get("/database-names")
 def get_dbs():

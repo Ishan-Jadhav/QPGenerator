@@ -2,3 +2,5 @@ fastapi[standard]
 pyspark==3.4.4
 pandas
 huggingface_hub
+matplotlib
+seaborn

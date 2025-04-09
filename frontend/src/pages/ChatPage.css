@@ -112,7 +112,7 @@
   overflow-y: auto; /* Enables vertical scrolling if content overflows */
   overflow-x: hidden; /* Prevents horizontal scrolling */
   padding: 10px;
-  padding-bottom: 80px; /* Adds padding equal to or slightly larger than the chat-input height */
+  padding-bottom: 120px; /* Adds padding to prevent collision with the chat-input */
   background-color: #f9f9f9;
   margin: 0 auto; /* Centers the chat container horizontally */
   max-width: 80%; /* Reduced width for the chat container */
@@ -120,7 +120,7 @@
   border-radius: 10px; /* Adds rounded corners */
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Adds a subtle shadow */
   width: 100%; /* Ensures it stretches to the allowed width */
-  max-height: 500px; /* Sets a maximum height for the container */
+  max-height: calc(100vh - 150px); /* Ensures the container height adjusts dynamically */
   box-sizing: border-box; /* Ensures padding is included in width/height calculations */
 }
 
@@ -164,6 +164,12 @@
   display: block; /* Prevents the table from affecting the centering of the message */
 }
 
+.chat-message.model img {
+  max-width: 100%; /* Ensures the image does not exceed the container's width */
+  height: auto; /* Maintains the aspect ratio of the image */
+  display: block; /* Prevents inline spacing issues */
+  margin: 0 auto; /* Centers the image within the message */
+}
 
 .chat-input {
   position: fixed; /* Keeps the input fixed at the bottom */
