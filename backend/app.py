@@ -155,14 +155,15 @@ def plotQuery(metadata,message):
             response=completion.choices[0].message.content
             count+=1
     
+    
     buf = io.BytesIO()
-    plt.savefig(buf, format='png')
+    plt.savefig(buf, format='png', bbox_inches=None, pad_inches=0.1)
     buf.seek(0)
     img_bytes = buf.read()
     img_base64 = base64.b64encode(img_bytes).decode('utf-8')
     buf.close()
     plt.close()
-    finalResult=f"data:image/png;base64,{img_base64}"
+    finalResult = f"data:image/png;base64,{img_base64}"
     return finalResult
 
     

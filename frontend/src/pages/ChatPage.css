@@ -1,15 +1,16 @@
 .chat-page {
-  display: flex; /* Use flexbox for layout */
-  height: 100vh;
-  max-width: 100%; /* Ensure it covers the full width */
-  position: relative;
+  display: flex; /* Flexbox for horizontal layout */
+  height: 100vh; /* Full viewport height */
+  width: 100%; /* Full width */
+  background-color: #ffffff; /* White background for the entire page */
+  box-sizing: border-box; /* Include padding and borders in width/height calculations */
 }
 
 .slider {
-  width: 200px; /* Fixed width for the slider */
-  background-color: #f0f0f0; /* Light background for the slider */
-  border-right: 1px solid #ccc; /* Add a border to separate the slider */
-  overflow-y: auto; /* Allow scrolling if content overflows */
+  width: 200px; /* Fixed width for the sidebar */
+  background-color: #f0f0f0; /* Light background for distinction */
+  border-right: 1px solid #ccc; /* Border to separate from chat section */
+  overflow-y: auto; /* Scrollable if content overflows */
   position: relative;
   transition: width 0.3s ease; /* Smooth transition for collapsing */
 }
@@ -34,17 +35,16 @@
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
+/* Chat Section */
 .chat-section {
-  flex: 1; /* Take up the remaining space */
+  flex: 1; /* Take up remaining space */
   display: flex;
   flex-direction: column;
-  transition: margin-left 0.3s ease;
-  margin-top: 10px; /* Reduced space to align closer to the title row */
-  overflow: hidden; /* Prevents the chat section from expanding horizontally */
-  max-width: calc(100vw - 200px); /* Ensures the section stays within the viewport, accounting for the slider width */
-  box-sizing: border-box; /* Includes padding and borders in width calculations */
+  overflow: hidden; /* Prevent horizontal overflow */
+  padding: 10px; /* Add padding for content */
+  background-color: #f9f9f9; /* Light gray background for the chat section */
+  box-sizing: border-box; /* Include padding in width/height calculations */
 }
-
 .chat-section.expanded {
   margin-left: 40px; /* Adjusted for collapsed slider */
 }
@@ -56,7 +56,7 @@
   padding: 5px 10px; /* Reduced padding for a smaller appearance */
   background-color: #f4f5f7;
   color: #0b0101;
-  height: 50px; /* Reduced height for a smaller header */
+  height: 40px; /* Reduced height for a smaller header */
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Adds a subtle shadow */
   position: relative; /* Allows absolute positioning of child elements */
 }
@@ -65,7 +65,7 @@
   position: absolute; /* Allows independent positioning */
   left: 20px; /* Aligns the name to the left */
   margin: 0;
-  font-size: 32px; /* Reduced font size for a smaller appearance */
+  font-size: 28px; /* Reduced font size for a smaller appearance */
   font-weight: bold;
 }
 
@@ -135,8 +135,8 @@
 
 .chat-message.user {
   align-self: flex-end; /* Aligns user messages to the right */
-  background-color: #0078d4; /* Matches the blue theme */
-  color: #ffffff; /* White text for contrast */
+  background-color: #d1d2d2; /* Matches the blue theme */
+  color: #100f0f; /* White text for contrast */
   text-align: right;
   max-width: 40%; /* Reduced width for smaller message sections */
   padding: 1%; /* Reduced padding for less space around the text */
