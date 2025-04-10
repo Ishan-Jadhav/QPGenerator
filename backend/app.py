@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 from pyspark.sql import SparkSession
 from pydantic import BaseModel
+from typing import Union
 import shutil
 import os
 import re
@@ -21,6 +22,8 @@ client = InferenceClient(
     api_key="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",
 )
 
+os.makedirs("/app/data",exist_ok=True)
+os.makedirs("/app/userData",exist_ok=True)
 
 # Function to clean column names
 def clean_column_name(col_name):
@@ -32,6 +35,17 @@ class query(BaseModel):
     dbName: str
     userQuery: str
 
+class SingleMessage(BaseModel):
+    type: str
+    sender: str
+    content: Union[str, List[dict]]
+
+class Messages(BaseModel):
+    chatName: str
+    messages: List[SingleMessage]
+
+class chat(BaseModel):
+    chatName: str
 
 app= FastAPI()
 spark = SparkSession.builder \
@@ -252,5 +266,34 @@ async def upload_data(
     NewDB(db_name)
 
     return {"status": "success", "message": "Files uploaded"}
-    
 
+@app.get("/allChats")
+def getChatNames():
+    directory = "/app/userData"
+
+    # List only files (excluding directories)
+    files = [f.split(".")[0] for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+
+    return JSONResponse(content={"chatNames":files})
+
+
+@app.post("/appendMessage")
+def extendMessage(req:Messages):
+    chatName=req.chatName
+    messages=req.messages
+    with open("/app/userData/"+chatName+".ndjson","a") as file:
+        for i in messages:
+            file.write(json.dumps(i.dict())+ "\n")
+    
+    return {"status": "success", "message": "Updated chat messages"}
+
+
+
+@app.post("/getMessages")
+def getMessages(req:chat):
+    chatName=req.chatName
+    messages=[]
+    with open("/app/userData/"+chatName+".ndjson","r") as file:
+        messages=[json.loads(line) for line in file]
+    
+    return JSONResponse(content={"messages":messages})

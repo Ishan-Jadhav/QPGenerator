@@ -206,3 +206,51 @@
   left: 40px; /* Adjusts for the collapsed slider width */
   max-width: 50%; /* Adjusts for the collapsed slider width */
 }
+
+.chat-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.chat-item {
+  display: flex; /* Use flexbox for alignment */
+  justify-content: space-between; /* Space between chat name and delete button */
+  align-items: center; /* Vertically center the content */
+  padding: 10px 15px;
+  margin: 5px 0;
+  background-color: #f0f0f0;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.chat-item:hover {
+  background-color: #e0e0e0;
+  transform: scale(1.02);
+}
+
+.chat-item:active {
+  background-color: #d0d0d0;
+}
+
+.delete-chat-button {
+  background: none;
+  border: none;
+  color: #ff4d4d;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s;
+}
+
+.delete-chat-button:hover {
+  color: #ff1a1a;
+}
+
+.chat-item span {
+  flex: 1; /* Allow the chat name to take up the remaining space */
+  text-align: left; /* Align the chat name to the left */
+}
