@@ -297,3 +297,9 @@ def getMessages(req:chat):
         messages=[json.loads(line) for line in file]
     
     return JSONResponse(content={"messages":messages})
+
+@app.post("/deleteChat")
+def delChat(req:chat):
+    chatName=req.chatName
+    os.remove("/app/userData/"+chatName+".ndjson")
+    return {"status": "success", "message": "Chat Removed"}

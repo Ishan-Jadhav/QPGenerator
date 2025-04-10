@@ -1,3 +1,6 @@
+// todo: make sure that user only gives query when chatName is properly set
+// when chat name is set, highlight the chat in slider
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ChatPage.css';
@@ -9,14 +12,13 @@ function ChatPage() {
   const [input, setInput] = useState('');
   const [isReplying, setIsReplying] = useState(false);
   const [isSliderCollapsed, setIsSliderCollapsed] = useState(false); // State for slider
+  const [loading,setLoading]= useState(false)
   const [databaseNames, setDatabaseNames] = useState([]);
-  const [chatName, setChatName] = useState('');
+  const [chatName, setChatName] = useState('Chat');
   const [chatNames, setChatNames] = useState([]); // Static chat names for now
-  const [chatNamesLoaded, setChatNamesLoaded] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-
     async function fetchDbNames() {
       const response = await fetch("http://localhost:8000/database-names", { method: "GET" });
       const names = await response.json();
@@ -28,21 +30,17 @@ function ChatPage() {
       const response = await fetch("http://localhost:8000/allChats", { method: "GET" });
       const names = await response.json();
       setChatNames(names.chatNames);
-      setChatNamesLoaded(true)
     }
     fetchChatNames();
 
 
   }, []);
 
-  useEffect(()=>{
-    if(chatNamesLoaded){
-      const randomChatName = `Chat_${chatNames.length+1}`;
-      setChatName(randomChatName);
-      setChatNamesLoaded(false)
+  useEffect(() => {
+    if (chatName !== 'Chat') {
+      setLoading(false); // Stop loading when chatName is set
     }
-  },[chatNamesLoaded,chatNames?.length])
-
+  }, [chatName]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -54,7 +52,7 @@ function ChatPage() {
   const handleSend = async () => {
       if (!input.trim()) return;
       const userMessage = { sender: 'user', type: 'text', content: input };
-      setMessages([...messages, userMessage]);
+      setMessages((prev)=>[...prev, userMessage]);
       setInput('');
 
       setIsReplying(true);
@@ -83,8 +81,23 @@ function ChatPage() {
       const resp = await queryRes.json();
 
       const modelReply = { sender: 'model', type: resp.type, content: resp.queryResp };
-      setMessages((prev) => [...prev, modelReply]);
-      setIsReplying(false);
+      setMessages((prev) =>[...prev, modelReply]);
+
+
+      let Cname=chatName;
+
+      if(chatName==="Chat")
+      {
+          const msg=userMessage.content;
+          const rawWords = msg.split(/\s+/).slice(0, 4);
+          const cleanWords = rawWords.map(word => word.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, ''));
+          const safeString = cleanWords.join("_");
+          Cname=safeString;
+          setLoading(true);
+          setChatName(safeString);
+          setChatNames((prev) => [...prev,safeString]);
+          
+      }
 
       await fetch("http://localhost:8000/appendMessage", {
         method: "POST",
@@ -92,10 +105,11 @@ function ChatPage() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          "chatName": String(chatName),
+          "chatName": String(Cname),
           "messages":[userMessage,modelReply]
         })
       });
+      setIsReplying(false);
 
   };
 
@@ -115,14 +129,29 @@ function ChatPage() {
         })
       });
       const chatMessages=await res.json();
-      console.log(chatMessages)
-      setMessages(chatMessages.messages) 
+      setLoading(true);
+      setChatName(name);
+      setMessages(chatMessages.messages); 
 
     };
     
-    const handleDeleteChat = (name) => {
-      console.log(`Delete chat: ${name}`);
-      // Functionality to delete the chat will go here
+    const handleDeleteChat = async (name) => {
+        setChatNames(prevItems => prevItems.filter(item => item !== name));
+        await fetch("http://localhost:8000/deleteChat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            "chatName": String(name),
+          })
+        });
+
+        if(name === chatName)
+          {
+            window.location.reload();
+          }
+        
     };
   return (
     <div className="chat-page">
@@ -140,7 +169,10 @@ function ChatPage() {
             </button>
             <ul className="chat-list">
               {chatNames.map((name, index) => (
-                <li key={index} className="chat-item">
+                <li
+                  key={index}
+                  className={`chat-item ${name === chatName ? 'active-chat' : ''}`} // Add 'active-chat' class if the chat is active
+                >
                   <span onClick={() => handleChatClick(name)}>{name}</span>
                   <button className="delete-chat-button" onClick={() => handleDeleteChat(name)}>
                     <FaTrash />
@@ -166,22 +198,26 @@ function ChatPage() {
           </div>
         </header>
         <div className="chat-container">
-          {messages.map((msg, index) => {
-            let content;
-            if (msg.type === 'text') {
-              content = <p>{msg.content}</p>;
-            } else if (msg.type === 'table') {
-              content = <TableComponent data={msg.content} />;
-            } else if (msg.type === 'plot') {
-              content = <img src={msg.content} alt="Generated Plot" />;
-            }
+        {loading ? (
+            <div className="loading-indicator">Loading...</div>
+          ) : (
+            messages.map((msg, index) => {
+              let content;
+              if (msg.type === 'text') {
+                content = <p>{msg.content}</p>;
+              } else if (msg.type === 'table') {
+                content = <TableComponent data={msg.content} />;
+              } else if (msg.type === 'plot') {
+                content = <img src={msg.content} alt="Generated Plot" />;
+              }
 
-            return (
-              <div key={index} className={`chat-message ${msg.sender}`}>
-                {content}
-              </div>
-            );
-          })}
+              return (
+                <div key={index} className={`chat-message ${msg.sender}`}>
+                  {content}
+                </div>
+              );
+            })
+          )}
         </div>
         <div className="chat-input">
           <textarea
