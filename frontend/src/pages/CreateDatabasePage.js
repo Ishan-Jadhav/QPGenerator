@@ -5,9 +5,11 @@ function CreateDatabasePage() {
   const [dbName, setDbName] = useState('');
   const [tableFiles, setTableFiles] = useState([]);
   const [metadataFile, setMetadataFile] = useState(null);
+  const [isLoading, setIsLoading] = useState(false); // Loading state
   const navigate = useNavigate();
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     const formData = new FormData();
     formData.append("db_name", dbName);
     formData.append("metadata_file", metadataFile);
@@ -23,9 +25,12 @@ function CreateDatabasePage() {
 
       const result = await response.json();
       console.log("Server response:", result);
+      alert("Database successfully created!");
       navigate("/")
     } catch (err) {
       console.error("Error uploading:", err);
+    } finally {
+      setIsLoading(false); // Set loading to false
     }
   };
 
@@ -59,8 +64,11 @@ function CreateDatabasePage() {
             required
           />
         </div>
-        <button type="submit">Create</button>
+        <button type="submit" disabled={isLoading}>
+          {isLoading ? "Creating..." : "Create"}
+        </button>
       </form>
+      {isLoading && <div className="loading-icon">Loading...</div>}
     </div>
   );
 }

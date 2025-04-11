@@ -22,6 +22,13 @@ function ChatPage() {
     async function fetchDbNames() {
       const response = await fetch("http://localhost:8000/database-names", { method: "GET" });
       const names = await response.json();
+
+      console.log()
+      if(names.folders.length===0)
+      {
+        navigate('/create-database');
+      }
+
       setDatabaseNames(names.folders);
     }
     fetchDbNames();
@@ -34,7 +41,7 @@ function ChatPage() {
     fetchChatNames();
 
 
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     if (chatName !== 'Chat') {
