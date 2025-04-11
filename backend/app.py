@@ -17,9 +17,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from utils.prompts import *
 import base64
+from dotenv import load_dotenv
+load_dotenv()
 client = InferenceClient(
     provider="cerebras",
-    api_key="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",
+    api_key=os.environ.get("HF_TOKEN"),
 )
 
 os.makedirs("/app/data",exist_ok=True)
