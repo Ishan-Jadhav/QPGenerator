@@ -268,3 +268,7 @@
   font-weight: bold; /* Make the text bold */
   color: #333; /* Darker text color */
 }
+
+.text-type {
+  text-align: left;
+}

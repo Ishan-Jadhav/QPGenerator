@@ -171,15 +171,15 @@ def UserQuery(query:query):
     
     prompt=get_query_type_prompt(metadata,message)
     response=model_response(prompt=prompt,model="hosted")
-
-    if response=="table":
+    response=json.loads(response)
+    if response["type"]=="table":
         finalResult=sqlQuery(metadata,message)
-    elif response=="plot":
+    elif response["type"]=="plot":
         finalResult=plotQuery(metadata,message)
     else:
-        return JSONResponse(content={"type":response,"queryResp":"Not allowed to ask general questions without any plots or table"})
+        return JSONResponse(content=response)
 
-    return JSONResponse(content={"type":response,"queryResp":finalResult})
+    return JSONResponse(content={"type":response["type"],"queryResp":finalResult})
 
 @app.get("/database-names")
 def get_dbs():

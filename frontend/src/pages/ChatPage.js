@@ -211,7 +211,7 @@ function ChatPage() {
             messages.map((msg, index) => {
               let content;
               if (msg.type === 'text') {
-                content = <p>{msg.content}</p>;
+                content = <p className="text-type">{msg.content}</p>;
               } else if (msg.type === 'table') {
                 content = <TableComponent data={msg.content} />;
               } else if (msg.type === 'plot') {
