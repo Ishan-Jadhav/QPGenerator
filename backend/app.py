@@ -13,6 +13,7 @@ import re
 import io
 import json
 from huggingface_hub import InferenceClient
+from transformers import pipeline
 import matplotlib.pyplot as plt
 import seaborn as sns
 from utils.prompts import *
@@ -23,6 +24,8 @@ client = InferenceClient(
     provider="cerebras",
     api_key=os.environ.get("HF_TOKEN"),
 )
+
+# pipe = pipeline("text-generation", model="meta-llama/Llama-3.2-3B-Instruct",use_auth_token=os.environ.get("HF_TOKEN"))
 
 os.makedirs("/app/data",exist_ok=True)
 os.makedirs("/app/userData",exist_ok=True)
@@ -66,6 +69,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def model_response(prompt,model="local"):
+
+    message=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+    
+    if model=="local":
+        return pipe(message)
+    else:
+        completion = client.chat.completions.create(
+                model="meta-llama/Llama-3.3-70B-Instruct",
+                messages=message,
+                # tools=[model_tool],
+                tool_choice="auto",
+                max_tokens=500,
+            )
+        response=completion.choices[0].message.content
+        return response
+
 @app.post("/registerDB")
 def register(dbName:request):
     name=dbName.dbName
@@ -89,19 +114,7 @@ def register(dbName:request):
         
 def sqlQuery(metadata,message):
     prompt=make_sql_prompt(metadata,message)
-    completion = client.chat.completions.create(
-        model="meta-llama/Llama-3.3-70B-Instruct",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        # tools=[model_tool],
-        tool_choice="auto",
-        max_tokens=500,
-    )
-    response=completion.choices[0].message.content
+    response=model_response(prompt=prompt,model="hosted")
     error_resolved=False
     count=0
     while not error_resolved and count<5:
@@ -111,19 +124,7 @@ def sqlQuery(metadata,message):
         except Exception as error:
             # print(error)
             refined_prompt=make_sql_refinement_prompt(metadata,message,response,error)
-            completion = client.chat.completions.create(
-                model="meta-llama/Llama-3.3-70B-Instruct",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": refined_prompt
-                    }
-                ],
-                # tools=[model_tool],
-                tool_choice="auto",
-                max_tokens=500,
-            )
-            response=completion.choices[0].message.content
+            response=model_response(prompt=refined_prompt,model="hosted")
             count+=1
     
     result=result.collect()
@@ -132,19 +133,7 @@ def sqlQuery(metadata,message):
 
 def plotQuery(metadata,message):
     prompt=get_plot_code_prompt(metadata,message)
-    completion = client.chat.completions.create(
-        model="meta-llama/Llama-3.3-70B-Instruct",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        # tools=[model_tool],
-        tool_choice="auto",
-        max_tokens=500,
-    )
-    response=completion.choices[0].message.content
+    response=model_response(prompt=prompt,model="hosted")
     error_resolved=False
     count=0
     while not error_resolved and count<5:
@@ -156,19 +145,7 @@ def plotQuery(metadata,message):
             # print(error)
             plt.close()
             refined_prompt=get_plot_code_refinement_prompt(message,metadata,response,error)
-            completion = client.chat.completions.create(
-                model="meta-llama/Llama-3.3-70B-Instruct",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": refined_prompt
-                    }
-                ],
-                # tools=[model_tool],
-                tool_choice="auto",
-                max_tokens=500,
-            )
-            response=completion.choices[0].message.content
+            response=model_response(prompt=refined_prompt,model="hosted")
             count+=1
     
     
@@ -193,19 +170,7 @@ def UserQuery(query:query):
         metadata=json.load(file)
     
     prompt=get_query_type_prompt(metadata,message)
-    completion = client.chat.completions.create(
-        model="meta-llama/Llama-3.3-70B-Instruct",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        # tools=[model_tool],
-        tool_choice="auto",
-        max_tokens=500,
-    )
-    response=completion.choices[0].message.content
+    response=model_response(prompt=prompt,model="hosted")
 
     if response=="table":
         finalResult=sqlQuery(metadata,message)

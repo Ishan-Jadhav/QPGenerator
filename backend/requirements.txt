@@ -4,3 +4,5 @@ pandas
 huggingface_hub
 matplotlib
 seaborn
+transformers
+torch
