@@ -1,23 +1,5 @@
 
 def get_query_type_prompt(metadata, user_query):
-    # prompt=f"""
-    # You are a query classification model. Given the database schema and a user query, classify the type of response the query is asking for.
-
-    # There are only three possible types of query responses:
-    # 1. "text" - A descriptive or explanatory response in natural language.
-    # 2. "table" - A request that should be answered with an SQL query (for tabular data).
-    # 3. "plot" - A request that should be answered with a visualization (using seaborn).
-
-    # Your task is to ONLY respond with one of: "text", "table", or "plot".
-
-    # ### Database Metadata:
-    # {metadata}
-
-    # ### User Query:
-    # {user_query}
-
-    # ### Response Type:
-    # """
     prompt = f"""
     You are a query classification model. Given the database schema and a user query, classify the type of response the query is asking for.
 
@@ -27,19 +9,19 @@ def get_query_type_prompt(metadata, user_query):
     3. "plot" - A request that should be answered with a visualization (using seaborn).
 
     Your task is to respond in one of the following **pure dictionary formats** ONLY:
-    - If the query is best answered with a natural language explanation or clarification, respond with:
+    - If the query is best answered with a natural language explanation or clarification (e.g., asking for definitions, context, or guidance), respond with:
     {{
         "type": "text",
         "queryResp": "Your explanation here."
     }}
-    - If the query is asking for a table or plot, first validate whether the column names or table references mentioned in the user query actually exist in the provided metadata.
-        - If any column names or tables mentioned are missing or do not match the metadata, respond with:
+    - If the query can be answered by extracting specific data from a database, even if the result is a single value (e.g., one customer's name), treat it as a **table** query. First validate whether the column names or table references mentioned in the user query actually exist in the provided metadata.
+        - If any mentioned columns or tables are invalid or missing, respond with:
         {{
             "type": "text",
             "queryResp": "Your explanation here."
         }}
         - Otherwise, respond with:
-        {{ "type": "table" }} or {{ "type": "plot" }} depending on what the query asks for.
+        {{ "type": "table" }} or {{ "type": "plot" }} depending on what the query requests.
 
     **IMPORTANT: Respond ONLY with a valid Python dictionary. DO NOT include any explanations, headings, markdown formatting, or additional text.**
 
@@ -51,6 +33,7 @@ def get_query_type_prompt(metadata, user_query):
 
     ### Response:
     """
+
 
 
     return prompt.strip()
@@ -65,8 +48,9 @@ def make_sql_prompt(metadata,user_question):
     User question:
     {user_question}
 
-    Generate the corresponding SQL query using fully qualified table names
-    (in the form database_name.table_name) and return *only* the SQL string.
+    Generate the corresponding SQL query using fully qualified table names (in the form database_name.table_name).
+
+    Respond with only the **pure SQL query string**. Do not include any headers, prefixes, code blocks, markdown formatting, or additional explanation.
     """
     return prompt.strip()
 
@@ -87,7 +71,8 @@ def make_sql_refinement_prompt(metadata, user_question, initial_sql_query, error
     Error Message:
     {error_message}
 
-    Please refine the SQL query using the provided database metadata, user question, initial SQL query, and error message. Return only the corrected SQL query without any explanations or comments.
+    Refine the SQL query using the provided context. Respond with **only** the corrected SQL query string. 
+    Do not include any headers, prefixes, code blocks, markdown formatting, or additional explanation.
     """
     return prompt.strip()
 

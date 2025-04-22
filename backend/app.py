@@ -70,7 +70,6 @@ app.add_middleware(
 )
 
 def model_response(prompt,model="local"):
-
     message=[
                 {
                     "role": "user",
@@ -86,7 +85,7 @@ def model_response(prompt,model="local"):
                 messages=message,
                 # tools=[model_tool],
                 tool_choice="auto",
-                max_tokens=500,
+                max_tokens=1500,
             )
         response=completion.choices[0].message.content
         return response
@@ -115,6 +114,7 @@ def register(dbName:request):
 def sqlQuery(metadata,message):
     prompt=make_sql_prompt(metadata,message)
     response=model_response(prompt=prompt,model="hosted")
+    print(response)
     error_resolved=False
     count=0
     while not error_resolved and count<5:
@@ -122,7 +122,7 @@ def sqlQuery(metadata,message):
             result=spark.sql(response)
             error_resolved=True
         except Exception as error:
-            # print(error)
+            print(error)
             refined_prompt=make_sql_refinement_prompt(metadata,message,response,error)
             response=model_response(prompt=refined_prompt,model="hosted")
             count+=1
