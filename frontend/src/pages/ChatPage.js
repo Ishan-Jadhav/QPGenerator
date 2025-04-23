@@ -74,25 +74,8 @@ function ChatPage() {
           "dbName": String(dbName)
         })
       });
-      const queryRes = await fetch("http://localhost:8000/userQuery", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          "dbName": String(dbName),
-          "userQuery": String(input)
-        })
-      });
-
-      const resp = await queryRes.json();
-
-      const modelReply = { sender: 'model', type: resp.type, content: resp.queryResp };
-      setMessages((prev) =>[...prev, modelReply]);
-
 
       let Cname=chatName;
-
       if(chatName==="Chat")
       {
           const msg=userMessage.content;
@@ -106,16 +89,22 @@ function ChatPage() {
           
       }
 
-      await fetch("http://localhost:8000/appendMessage", {
+      const queryRes = await fetch("http://localhost:8000/userQuery", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          "chatName": String(Cname),
-          "messages":[userMessage,modelReply]
+          "dbName": String(dbName),
+          "userQuery": String(input),
+          "chatName":String(Cname)
         })
       });
+
+      const resp = await queryRes.json();
+
+      const modelReply = { sender: 'model', type: resp.type, content: resp.queryResp };
+      setMessages((prev) =>[...prev, modelReply]);
       setIsReplying(false);
 
   };
@@ -126,6 +115,9 @@ function ChatPage() {
   };
 
   const handleChatClick = async (name) => {
+      if(name===chatName)
+        return;
+      setLoading(true);
       const res=await fetch("http://localhost:8000/getMessages", {
         method: "POST",
         headers: {
@@ -136,13 +128,13 @@ function ChatPage() {
         })
       });
       const chatMessages=await res.json();
-      setLoading(true);
+      
       setChatName(name);
       setMessages(chatMessages.messages); 
-
+      // setLoading(false);
     };
     
-    const handleDeleteChat = async (name) => {
+  const handleDeleteChat = async (name) => {
         setChatNames(prevItems => prevItems.filter(item => item !== name));
         await fetch("http://localhost:8000/deleteChat", {
           method: "POST",

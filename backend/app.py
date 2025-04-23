@@ -39,11 +39,13 @@ class request(BaseModel):
 class query(BaseModel):
     dbName: str
     userQuery: str
+    chatName: str
 
 class SingleMessage(BaseModel):
     type: str
     sender: str
     content: Union[str, List[dict]]
+    code: str
 
 class Messages(BaseModel):
     chatName: str
@@ -129,6 +131,7 @@ def sqlQuery(metadata,message):
     
     result=result.collect()
     finalResult=[row.asDict() for row in result]
+    finalResult={"queryResp":finalResult,"sqlQuery":response}
     return finalResult
 
 def plotQuery(metadata,message):
@@ -157,29 +160,70 @@ def plotQuery(metadata,message):
     buf.close()
     plt.close()
     finalResult = f"data:image/png;base64,{img_base64}"
+    finalResult={"queryResp":finalResult,"plotQuery":response}
     return finalResult
 
+
+def extendMessage(req:Messages):
+    chatName=req.chatName
+    messages=req.messages
+    with open("/app/userData/"+chatName+".ndjson","a") as file:
+        for i in messages:
+            file.write(json.dumps(i.dict())+ "\n")
     
+    return {"status": "success", "message": "Updated chat messages"}
+
+def getHistory(chatName):
+    hist=[]
+    with open("/app/userData/"+chatName+".ndjson","r") as file:
+        for line in file:
+            x=json.loads(line)
+            dt={}
+            if x["type"]!="text":
+                dt={k:v for k,v in x.items() if k!="content"}
+            else:
+                dt={k:v for k,v in x.items() if k!="code"}
+                dt["code"]=dt.pop("content")
+            hist.append(dt)
+    return hist
+
 @app.post("/userQuery")
 def UserQuery(query:query):
     dbname=query.dbName
     message=query.userQuery
+    chatName=query.chatName
     databasePath=os.path.join("/app","data",dbname)
     metadataPath=os.path.join(databasePath,"metadata.json")
     with open(metadataPath,"r", encoding="utf-8") as file:
         metadata=json.load(file)
-    
-    prompt=get_query_type_prompt(metadata,message)
+    history=getHistory(chatName)
+
+    prompt=get_query_type_prompt(metadata,message,history)
     response=model_response(prompt=prompt,model="hosted")
     response=json.loads(response)
     if response["type"]=="table":
-        finalResult=sqlQuery(metadata,message)
+        finalResult=sqlQuery(metadata,response["queryResp"])
+        userMessage={"type":"text","sender":"user","content":message,"code":""}
+        modelMessage={"type":"table","sender":"model","content":finalResult["queryResp"],"code":finalResult["sqlQuery"]}
+        messages={"chatName":chatName,"messages":[userMessage,modelMessage]}
+        messages_obj=Messages(**messages)
+        extendMessage(messages_obj)
     elif response["type"]=="plot":
-        finalResult=plotQuery(metadata,message)
+        finalResult=plotQuery(metadata,response["queryResp"])
+        userMessage={"type":"text","sender":"user","content":message,"code":""}
+        modelMessage={"type":"plot","sender":"model","content":finalResult["queryResp"],"code":finalResult["plotQuery"]}
+        messages={"chatName":chatName,"messages":[userMessage,modelMessage]}
+        messages_obj=Messages(**messages)
+        extendMessage(messages_obj)
     else:
+        userMessage={"type":"text","sender":"user","content":message,"code":""}
+        modelMessage={"type":"text","sender":"model","content":response["queryResp"],"code":""}
+        messages={"chatName":chatName,"messages":[userMessage,modelMessage]}
+        messages_obj=Messages(**messages)
+        extendMessage(messages_obj)
         return JSONResponse(content=response)
 
-    return JSONResponse(content={"type":response["type"],"queryResp":finalResult})
+    return JSONResponse(content={"type":response["type"],"queryResp":finalResult["queryResp"]})
 
 @app.get("/database-names")
 def get_dbs():
@@ -244,15 +288,7 @@ def getChatNames():
     return JSONResponse(content={"chatNames":files})
 
 
-@app.post("/appendMessage")
-def extendMessage(req:Messages):
-    chatName=req.chatName
-    messages=req.messages
-    with open("/app/userData/"+chatName+".ndjson","a") as file:
-        for i in messages:
-            file.write(json.dumps(i.dict())+ "\n")
-    
-    return {"status": "success", "message": "Updated chat messages"}
+
 
 
 
@@ -261,7 +297,10 @@ def getMessages(req:chat):
     chatName=req.chatName
     messages=[]
     with open("/app/userData/"+chatName+".ndjson","r") as file:
-        messages=[json.loads(line) for line in file]
+        for line in file:
+            x=json.loads(line)
+            dt={k:v for k,v in x.items() if k!="code"}
+            messages.append(dt)
     
     return JSONResponse(content={"messages":messages})
 
