@@ -16,6 +16,7 @@ function ChatPage() {
   const [databaseNames, setDatabaseNames] = useState([]);
   const [chatName, setChatName] = useState('Chat');
   const [chatNames, setChatNames] = useState([]); // Static chat names for now
+  const [totalChats,setTotalChats]=useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,6 +38,7 @@ function ChatPage() {
       const response = await fetch("http://localhost:8000/allChats", { method: "GET" });
       const names = await response.json();
       setChatNames(names.chatNames);
+      setTotalChats(names.chatNames.length)
     }
     fetchChatNames();
 
@@ -81,7 +83,8 @@ function ChatPage() {
           const msg=userMessage.content;
           const rawWords = msg.split(/\s+/).slice(0, 4);
           const cleanWords = rawWords.map(word => word.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, ''));
-          const safeString = cleanWords.join("_");
+          const safeString = cleanWords.join("_")+"_"+totalChats;
+          setTotalChats(prev => prev + 1);
           Cname=safeString;
           setLoading(true);
           setChatName(safeString);
@@ -152,6 +155,10 @@ function ChatPage() {
           }
         
     };
+  const chatNameUI=(name)=>{
+    const final=name.split("_").slice(0, -1).join("_");
+    return final;
+  }
   return (
     <div className="chat-page">
       <div className={`slider ${isSliderCollapsed ? 'collapsed' : ''}`}>
@@ -172,7 +179,7 @@ function ChatPage() {
                   key={index}
                   className={`chat-item ${name === chatName ? 'active-chat' : ''}`} // Add 'active-chat' class if the chat is active
                 >
-                  <span onClick={() => handleChatClick(name)}>{name}</span>
+                  <span onClick={() => handleChatClick(name)}>{chatNameUI(name)}</span>
                   <button className="delete-chat-button" onClick={() => handleDeleteChat(name)}>
                     <FaTrash />
                   </button>

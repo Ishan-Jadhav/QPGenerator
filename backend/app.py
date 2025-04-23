@@ -175,6 +175,9 @@ def extendMessage(req:Messages):
 
 def getHistory(chatName):
     hist=[]
+    if not os.path.exists("/app/userData/"+chatName+".ndjson"):
+        return hist
+
     with open("/app/userData/"+chatName+".ndjson","r") as file:
         for line in file:
             x=json.loads(line)
