@@ -19,6 +19,7 @@ import seaborn as sns
 from utils.prompts import *
 import base64
 from dotenv import load_dotenv
+from decimal import Decimal
 load_dotenv()
 client = InferenceClient(
     provider="cerebras",
@@ -29,6 +30,7 @@ client = InferenceClient(
 
 os.makedirs("/app/data",exist_ok=True)
 os.makedirs("/app/userData",exist_ok=True)
+
 
 # Function to clean column names
 def clean_column_name(col_name):
@@ -70,6 +72,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+def normalize_decimals(obj):
+    if isinstance(obj, list):
+        return [normalize_decimals(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {k: normalize_decimals(v) for k, v in obj.items()}
+    elif isinstance(obj, Decimal):
+        return float(obj)  # or str(obj) if you want to preserve formatting
+    else:
+        return obj
+
 
 def model_response(prompt,model="local"):
     message=[
@@ -130,7 +143,7 @@ def sqlQuery(metadata,message):
             count+=1
     
     result=result.collect()
-    finalResult=[row.asDict() for row in result]
+    finalResult=normalize_decimals([row.asDict() for row in result])
     finalResult={"queryResp":finalResult,"sqlQuery":response}
     return finalResult
 
@@ -169,7 +182,9 @@ def extendMessage(req:Messages):
     messages=req.messages
     with open("/app/userData/"+chatName+".ndjson","a") as file:
         for i in messages:
-            file.write(json.dumps(i.dict())+ "\n")
+            print(i)
+            # file.write(json.dumps(i.dict())+ "\n")
+            file.write(i.json() + "\n")
     
     return {"status": "success", "message": "Updated chat messages"}
 
