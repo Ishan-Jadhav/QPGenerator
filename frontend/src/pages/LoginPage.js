@@ -12,7 +12,7 @@ function LoginPage() {
     e.preventDefault();
     setError('');
 
-    const response = await fetch('http://localhost:8000/login', {
+    const response = await fetch('/login', {
       method: 'POST',
       credentials:"include",
       headers: {

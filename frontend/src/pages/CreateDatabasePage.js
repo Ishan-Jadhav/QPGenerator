@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import './CreateDatabasePage.css';
 import { useNavigate } from 'react-router-dom';
 function CreateDatabasePage() {
@@ -7,6 +7,19 @@ function CreateDatabasePage() {
   const [metadataFile, setMetadataFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false); // Loading state
   const navigate = useNavigate();
+
+  useEffect(() => {
+          async function auth() {
+            const res = await fetch("/auth-status", {
+              method: "POST",
+              credentials: "include",
+            });
+            if (!res.ok) navigate("/login");
+        }
+        auth();
+    }, [navigate]);
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -20,6 +33,7 @@ function CreateDatabasePage() {
     try {
       const response = await fetch("http://localhost:8000/upload-database", {
         method: "POST",
+        credentials:"include",
         body: formData,
       });
 
@@ -33,6 +47,13 @@ function CreateDatabasePage() {
       setIsLoading(false); // Set loading to false
     }
   };
+
+  const handleSignout = async () => {
+    // Clear any authentication tokens or session data
+    await fetch("http://localhost:8000/signout",{method:"POST",credentials:"include"})
+    navigate("/login")
+  };
+
 
   return (
     <div className="create-database-page">
@@ -69,6 +90,9 @@ function CreateDatabasePage() {
         </button>
       </form>
       {isLoading && <div className="loading-icon">Loading...</div>}
+      <button onClick={handleSignout} className="logout-button">
+        Signout
+      </button>
     </div>
   );
 }

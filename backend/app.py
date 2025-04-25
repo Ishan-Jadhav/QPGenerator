@@ -32,8 +32,7 @@ client = InferenceClient(
 
 # pipe = pipeline("text-generation", model="meta-llama/Llama-3.2-3B-Instruct",use_auth_token=os.environ.get("HF_TOKEN"))
 
-os.makedirs("/app/data",exist_ok=True)
-os.makedirs("/app/userData",exist_ok=True)
+
 
 
 # Function to clean column names
@@ -71,6 +70,17 @@ spark = SparkSession.builder \
     .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
     .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
     .getOrCreate()
+
+def get_current_user(access_token: str = Cookie(None)):
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Missing access token")
+    try:
+        payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload.get("sub")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Access token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid access token")
 
 # Initialize DB once
 def init_db():
@@ -142,9 +152,9 @@ def model_response(prompt,model="local"):
         return response
 
 @app.post("/registerDB")
-def register(dbName:request):
+def register(dbName:request,username:str=Depends(get_current_user)):
     name=dbName.dbName
-    databasePath=os.path.join("/app","data",name)
+    databasePath=os.path.join("/app","data",username,name)
     files=os.walk(databasePath)
     spark.sql(f"create database if not exists {name}")
     for file in files:
@@ -213,10 +223,10 @@ def plotQuery(metadata,message):
     return finalResult
 
 
-def extendMessage(req:Messages):
+def extendMessage(req:Messages,username):
     chatName=req.chatName
     messages=req.messages
-    with open("/app/userData/"+chatName+".ndjson","a") as file:
+    with open("/app/userData/"+username+"/"+chatName+".ndjson","a") as file:
         for i in messages:
             print(i)
             # file.write(json.dumps(i.dict())+ "\n")
@@ -224,12 +234,12 @@ def extendMessage(req:Messages):
     
     return {"status": "success", "message": "Updated chat messages"}
 
-def getHistory(chatName):
+def getHistory(chatName,username):
     hist=[]
-    if not os.path.exists("/app/userData/"+chatName+".ndjson"):
+    if not os.path.exists("/app/userData/"+username+"/"+chatName+".ndjson"):
         return hist
 
-    with open("/app/userData/"+chatName+".ndjson","r") as file:
+    with open("/app/userData/"+username+"/"+chatName+".ndjson") as file:
         for line in file:
             x=json.loads(line)
             dt={}
@@ -242,15 +252,15 @@ def getHistory(chatName):
     return hist
 
 @app.post("/userQuery")
-def UserQuery(query:query):
+def UserQuery(query:query,username:str=Depends(get_current_user)):
     dbname=query.dbName
     message=query.userQuery
     chatName=query.chatName
-    databasePath=os.path.join("/app","data",dbname)
+    databasePath=os.path.join("/app","data",username,dbname)
     metadataPath=os.path.join(databasePath,"metadata.json")
     with open(metadataPath,"r", encoding="utf-8") as file:
         metadata=json.load(file)
-    history=getHistory(chatName)
+    history=getHistory(chatName,username)
 
     prompt=get_query_type_prompt(metadata,message,history)
     response=model_response(prompt=prompt,model="hosted")
@@ -261,35 +271,35 @@ def UserQuery(query:query):
         modelMessage={"type":"table","sender":"model","content":finalResult["queryResp"],"code":finalResult["sqlQuery"]}
         messages={"chatName":chatName,"messages":[userMessage,modelMessage]}
         messages_obj=Messages(**messages)
-        extendMessage(messages_obj)
+        extendMessage(messages_obj,username)
     elif response["type"]=="plot":
         finalResult=plotQuery(metadata,response["queryResp"])
         userMessage={"type":"text","sender":"user","content":message,"code":""}
         modelMessage={"type":"plot","sender":"model","content":finalResult["queryResp"],"code":finalResult["plotQuery"]}
         messages={"chatName":chatName,"messages":[userMessage,modelMessage]}
         messages_obj=Messages(**messages)
-        extendMessage(messages_obj)
+        extendMessage(messages_obj,username)
     else:
         userMessage={"type":"text","sender":"user","content":message,"code":""}
         modelMessage={"type":"text","sender":"model","content":response["queryResp"],"code":""}
         messages={"chatName":chatName,"messages":[userMessage,modelMessage]}
         messages_obj=Messages(**messages)
-        extendMessage(messages_obj)
+        extendMessage(messages_obj,username)
         return JSONResponse(content=response)
 
     return JSONResponse(content={"type":response["type"],"queryResp":finalResult["queryResp"]})
 
 @app.get("/database-names")
-def get_dbs():
-    directoryPath=os.path.join("/app","data")
+def get_dbs(username:str=Depends(get_current_user)):
+    directoryPath=os.path.join("/app","data",username)
     names=os.listdir(directoryPath)
     names=[name for name in names if os.path.isdir(os.path.join(directoryPath, name))]
     return JSONResponse(content={"folders":names})
 
 
-def NewDB(dbName):
+def NewDB(dbName,username):
     name=dbName
-    databasePath=os.path.join("/app","data",name)
+    databasePath=os.path.join("/app","data",username,name)
     files=os.walk(databasePath)
     spark.sql(f"create database if not exists {name}")
     for file in files:
@@ -317,24 +327,25 @@ def NewDB(dbName):
 async def upload_data(
     db_name: str = Form(...),
     metadata_file: UploadFile = File(...),
-    table_files: List[UploadFile] = File(...)
+    table_files: List[UploadFile] = File(...),
+    username:str=Depends(get_current_user)
     ):
-    os.makedirs(f"/app/data/{db_name}", exist_ok=True)
-    meta_path = f"/app/data/{db_name}/metadata.json"
+    os.makedirs(f"/app/data/{username}/{db_name}", exist_ok=True)
+    meta_path = f"/app/data/{username}/{db_name}/metadata.json"
     with open(meta_path, "wb") as f:
         shutil.copyfileobj(metadata_file.file, f)
     for file in table_files:
-        file_path = f"/app/data/{db_name}/{file.filename}"
+        file_path = f"/app/data/{username}/{db_name}/{file.filename}"
         with open(file_path, "wb") as f:
             shutil.copyfileobj(file.file, f)
 
-    NewDB(db_name)
+    NewDB(db_name,username)
 
     return {"status": "success", "message": "Files uploaded"}
 
 @app.get("/allChats")
-def getChatNames():
-    directory = "/app/userData"
+def getChatNames(username:str=Depends(get_current_user)):
+    directory = "/app/userData/"+username
 
     # List only files (excluding directories)
     files = [f.split(".")[0] for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
@@ -343,10 +354,10 @@ def getChatNames():
 
 
 @app.post("/getMessages")
-def getMessages(req:chat):
+def getMessages(req:chat,username:str=Depends(get_current_user)):
     chatName=req.chatName
     messages=[]
-    with open("/app/userData/"+chatName+".ndjson","r") as file:
+    with open("/app/userData/"+username+"/"+chatName+".ndjson","r") as file:
         for line in file:
             x=json.loads(line)
             dt={k:v for k,v in x.items() if k!="code"}
@@ -355,22 +366,13 @@ def getMessages(req:chat):
     return JSONResponse(content={"messages":messages})
 
 @app.post("/deleteChat")
-def delChat(req:chat):
+def delChat(req:chat,username:str=Depends(get_current_user)):
     chatName=req.chatName
-    os.remove("/app/userData/"+chatName+".ndjson")
+    os.remove("/app/userData/"+username+"/"+chatName+".ndjson")
     return {"status": "success", "message": "Chat Removed"}
 
 
-def get_current_user(access_token: str = Cookie(None)):
-    if not access_token:
-        raise HTTPException(status_code=401, detail="Missing access token")
-    try:
-        payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload.get("sub")
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Access token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid access token")
+
 
 @app.post("/signup")
 def signup(user:User):
@@ -395,35 +397,37 @@ def login(user:User):
         if not res:
             raise HTTPException(status_code=401, detail="Invalid credentials")
     access_token = create_access_token({"sub": username})
-
+    
+    os.makedirs(f"/app/data/{username}",exist_ok=True)
+    os.makedirs(f"/app/userData/{username}",exist_ok=True)
     response = JSONResponse(content={"message": "Login successful"})
     response.set_cookie("access_token", access_token, httponly=True, max_age=900, path="/", samesite="Lax",secure=False)
     return response
 
-@app.post("/logout")
+@app.post("/signout")
 def logout():
     resp = JSONResponse({"message": "Logged out"})
     resp.delete_cookie("access_token",  path="/")
     return resp
 
-@app.post("/refresh")
-def refresh_token(access_token: str = Cookie(None)):
-    if not access_token:
-        raise HTTPException(status_code=401, detail="Missing refresh token")
+# @app.post("/refresh")
+# def refresh_token(access_token: str = Cookie(None)):
+#     if not access_token:
+#         raise HTTPException(status_code=401, detail="Missing refresh token")
 
-    try:
-        payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
-        username = payload.get("sub")
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Access token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid access token")
+#     try:
+#         payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
+#         username = payload.get("sub")
+#     except jwt.ExpiredSignatureError:
+#         raise HTTPException(status_code=401, detail="Access token expired")
+#     except jwt.InvalidTokenError:
+#         raise HTTPException(status_code=401, detail="Invalid access token")
 
-    new_access = create_access_token({"sub": username})
+#     new_access = create_access_token({"sub": username})
 
-    response = JSONResponse({"message": "Token refreshed"})
-    response.set_cookie("access_token", new_access, httponly=True, max_age=900, path="/", samesite="None")
-    return response
+#     response = JSONResponse({"message": "Token refreshed"})
+#     response.set_cookie("access_token", new_access, httponly=True, max_age=900, path="/", samesite="None")
+#     return response
 
 @app.post("/auth-status")
 def auth_status(username: str = Depends(get_current_user)):

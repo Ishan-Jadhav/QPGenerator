@@ -37,7 +37,7 @@ function ChatPage() {
   useEffect(() => {
     if(!user) return;
     async function fetchDbNames() {
-      const response = await fetch("http://localhost:8000/database-names", { method: "GET" });
+      const response = await fetch("http://localhost:8000/database-names", { method: "GET" ,credentials:"include"});
       const names = await response.json();
 
       console.log()
@@ -51,7 +51,7 @@ function ChatPage() {
     fetchDbNames();
 
     async function fetchChatNames() {
-      const response = await fetch("http://localhost:8000/allChats", { method: "GET" });
+      const response = await fetch("http://localhost:8000/allChats", { method: "GET",credentials:"include" });
       const names = await response.json();
       setChatNames(names.chatNames);
       setTotalChats(names.chatNames.length)
@@ -87,6 +87,7 @@ function ChatPage() {
       console.log(dbName);
       await fetch("http://localhost:8000/registerDB", {
         method: "POST",
+        credentials:"include",
         headers: {
           "Content-Type": "application/json"
         },
@@ -112,6 +113,7 @@ function ChatPage() {
 
       const queryRes = await fetch("http://localhost:8000/userQuery", {
         method: "POST",
+        credentials:"include",
         headers: {
           "Content-Type": "application/json"
         },
@@ -141,6 +143,7 @@ function ChatPage() {
       setLoading(true);
       const res=await fetch("http://localhost:8000/getMessages", {
         method: "POST",
+        credentials:"include",
         headers: {
           "Content-Type": "application/json"
         },
@@ -159,6 +162,7 @@ function ChatPage() {
         setChatNames(prevItems => prevItems.filter(item => item !== name));
         await fetch("http://localhost:8000/deleteChat", {
           method: "POST",
+          credentials:"include",
           headers: {
             "Content-Type": "application/json"
           },
@@ -179,7 +183,7 @@ function ChatPage() {
   }
   
   const signout=async ()=>{
-      const res=await fetch("http://localhost:8000/signout",{method:"POST",credentials:"include"})
+      await fetch("http://localhost:8000/signout",{method:"POST",credentials:"include"})
       navigate("/login")
   }
 
