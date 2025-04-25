@@ -1,5 +1,5 @@
 # ToDO: clean the column names to avoid error in spark sql 
-from fastapi import FastAPI
+from fastapi import FastAPI,HTTPException,Cookie,Depends
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,6 +20,10 @@ from utils.prompts import *
 import base64
 from dotenv import load_dotenv
 from decimal import Decimal
+import sqlite3
+import hashlib
+import jwt
+from datetime import datetime, timedelta
 load_dotenv()
 client = InferenceClient(
     provider="cerebras",
@@ -56,6 +60,10 @@ class Messages(BaseModel):
 class chat(BaseModel):
     chatName: str
 
+class User(BaseModel):
+    username: str
+    password: str
+
 app= FastAPI()
 spark = SparkSession.builder \
     .appName("DeltaSession") \
@@ -63,6 +71,34 @@ spark = SparkSession.builder \
     .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
     .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
     .getOrCreate()
+
+# Initialize DB once
+def init_db():
+    with sqlite3.connect("users.db") as conn:
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL
+        )
+        """)
+init_db()
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+ACCESS_TOKEN_EXPIRE_DAYS = 1
+SECRET_KEY = "your-secret"
+ALGORITHM = "HS256"
+
+def create_access_token(data):
+    to_encode = data.copy()
+    expire = datetime.now() + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    # PyJWT: jwt.encode(payload, key, algorithm) :contentReference[oaicite:1]{index=1}
+
+
 
 # Allow all origins (for development)
 app.add_middleware(
@@ -306,10 +342,6 @@ def getChatNames():
     return JSONResponse(content={"chatNames":files})
 
 
-
-
-
-
 @app.post("/getMessages")
 def getMessages(req:chat):
     chatName=req.chatName
@@ -327,3 +359,72 @@ def delChat(req:chat):
     chatName=req.chatName
     os.remove("/app/userData/"+chatName+".ndjson")
     return {"status": "success", "message": "Chat Removed"}
+
+
+def get_current_user(access_token: str = Cookie(None)):
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Missing access token")
+    try:
+        payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload.get("sub")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Access token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid access token")
+
+@app.post("/signup")
+def signup(user:User):
+    username=user.username
+    password=user.password
+    hashed_pass=hash_password(password)
+    try:
+     with sqlite3.connect("users.db") as conn:
+        conn.execute("insert into users (username,password) values (?,?)",(username,hashed_pass))
+        return {"status": "ok","message": "User registered successfully"}
+    except sqlite3.IntegrityError:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+@app.post("/login")
+def login(user:User):
+    username=user.username
+    password=user.password
+    hashed_pass=hash_password(password)
+    with sqlite3.connect("users.db") as conn:
+        res=conn.execute("select * from users where username=? and password=?",(username,hashed_pass))
+        res=res.fetchone()
+        if not res:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+    access_token = create_access_token({"sub": username})
+
+    response = JSONResponse(content={"message": "Login successful"})
+    response.set_cookie("access_token", access_token, httponly=True, max_age=900, path="/", samesite="Lax",secure=False)
+    return response
+
+@app.post("/logout")
+def logout():
+    resp = JSONResponse({"message": "Logged out"})
+    resp.delete_cookie("access_token",  path="/")
+    return resp
+
+@app.post("/refresh")
+def refresh_token(access_token: str = Cookie(None)):
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Missing refresh token")
+
+    try:
+        payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Access token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid access token")
+
+    new_access = create_access_token({"sub": username})
+
+    response = JSONResponse({"message": "Token refreshed"})
+    response.set_cookie("access_token", new_access, httponly=True, max_age=900, path="/", samesite="None")
+    return response
+
+@app.post("/auth-status")
+def auth_status(username: str = Depends(get_current_user)):
+    return {"status": "ok", "user": username}

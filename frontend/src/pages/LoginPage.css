@@ -1,0 +1,105 @@
+
+/* 1. Full-page white background & centering */
+.login-page-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  font-family: Arial, sans-serif;
+  box-sizing: border-box;
+  padding: 1rem;
+}
+
+  
+  /* 2. The “card” wrapper */
+  .login-page {
+    width: 80vw;                   /* 80% of viewport width */
+    max-width: 600px;              /* cap at 600px */
+    padding: 50px;                 /* roomy padding */
+    background-color: #ffffff;     /* white card */
+    border-radius: 8px;            /* soft corners */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* gentle shadow */
+    box-sizing: border-box;
+    text-align: center;
+  }
+  
+  /* 3. Heading */
+  .login-page h2 {
+    margin-bottom: 1.5rem;
+    font-size: 2rem;
+    color: #333333;
+  }
+  
+  /* 4. Form rows */
+  .login-page form > div {
+    margin-bottom: 1.5rem;
+    text-align: left;
+  }
+  
+  /* 5. Labels */
+  .login-page label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #444444;
+  }
+  
+  /* 6. Inputs */
+  .login-page input[type="text"],
+  .login-page input[type="password"] {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+    border: 1px solid #cccccc;
+    border-radius: 6px;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .login-page input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+  }
+  
+  /* 7. Error message */
+  .error-message {
+    color: #e53e3e;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+  }
+  
+  /* 8. Button */
+  .login-page button {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+    background-color: #007bff;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .login-page button:hover {
+    background-color: #0056b3;
+  }
+  
+  /* 9. Signup link */
+  .login-page p {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    color: #666666;
+  }
+  
+  .login-page a {
+    color: #007bff;
+    text-decoration: none;
+  }
+  
+  .login-page a:hover {
+    text-decoration: underline;
+  }
+  

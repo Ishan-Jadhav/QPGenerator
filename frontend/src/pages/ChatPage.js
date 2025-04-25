@@ -17,9 +17,25 @@ function ChatPage() {
   const [chatName, setChatName] = useState('Chat');
   const [chatNames, setChatNames] = useState([]); // Static chat names for now
   const [totalChats,setTotalChats]=useState(0);
+  const [user,setUser]=useState('')
   const navigate = useNavigate();
 
   useEffect(() => {
+        async function auth() {
+        
+          const res = await fetch("/auth-status", {
+            method: "POST",
+            credentials: "include",
+          });
+          if (!res.ok) navigate("/login");
+          const data = await res.json();
+          setUser(data.user);
+      }
+      auth();
+  }, [navigate]);
+
+  useEffect(() => {
+    if(!user) return;
     async function fetchDbNames() {
       const response = await fetch("http://localhost:8000/database-names", { method: "GET" });
       const names = await response.json();
@@ -43,13 +59,15 @@ function ChatPage() {
     fetchChatNames();
 
 
-  }, [navigate]);
+  }, [navigate,user]);
 
   useEffect(() => {
+    if(!user) return;
     if (chatName !== 'Chat') {
       setLoading(false); // Stop loading when chatName is set
     }
-  }, [chatName]);
+  }, [chatName,user]);
+
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -159,6 +177,12 @@ function ChatPage() {
     const final=name.split("_").slice(0, -1).join("_");
     return final;
   }
+  
+  const signout=async ()=>{
+      const res=await fetch("http://localhost:8000/signout",{method:"POST",credentials:"include"})
+      navigate("/login")
+  }
+
   return (
     <div className="chat-page">
       <div className={`slider ${isSliderCollapsed ? 'collapsed' : ''}`}>
@@ -202,6 +226,7 @@ function ChatPage() {
             </select>
             <button onClick={() => navigate('/create-database')}>Create Database</button>
           </div>
+          <button className="signout-button" onClick={() => signout()}>Sign Out</button>
         </header>
         <div className="chat-container">
         {loading ? (

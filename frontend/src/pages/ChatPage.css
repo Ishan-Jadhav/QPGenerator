@@ -272,3 +272,22 @@
 .text-type {
   text-align: left;
 }
+
+.signout-button {
+  background-color: #ff4d4d; /* A red theme for sign-out */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  position: absolute; /* Allows independent positioning */
+  right: 20px; /* Aligns the name to the left */
+  margin: 0;
+  font-size: 14px; /* Reduced font size for a smaller appearance */
+  font-weight: bold;
+}
+
+.signout-button:hover {
+  background-color: #e60000; /* Darker red on hover */
+}
