@@ -12,7 +12,7 @@ function LoginPage() {
     e.preventDefault();
     setError('');
 
-    const response = await fetch('/login', {
+    const response = await fetch('http://localhost:8000/signin', {
       method: 'POST',
       credentials:"include",
       headers: {
@@ -32,7 +32,7 @@ function LoginPage() {
   return (
     <div className="login-page-wrapper">
       <div className="login-page">
-        <h2>Login</h2>
+        <h2>Signin</h2>
         <form onSubmit={handleLogin}>
           <div>
             <label htmlFor="username">Username:</label>
@@ -55,7 +55,7 @@ function LoginPage() {
             />
           </div>
           {error && <p className="error-message">{error}</p>}
-          <button type="submit">Login</button>
+          <button type="submit">Sign In</button>
         </form>
         <p>
           Don't have an account? <a href="/signup">Sign up</a>

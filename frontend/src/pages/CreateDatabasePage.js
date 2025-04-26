@@ -10,11 +10,11 @@ function CreateDatabasePage() {
 
   useEffect(() => {
           async function auth() {
-            const res = await fetch("/auth-status", {
+            const res = await fetch("http://localhost:8000/auth-status", {
               method: "POST",
               credentials: "include",
             });
-            if (!res.ok) navigate("/login");
+            if (!res.ok) navigate("/signin");
         }
         auth();
     }, [navigate]);
@@ -51,7 +51,7 @@ function CreateDatabasePage() {
   const handleSignout = async () => {
     // Clear any authentication tokens or session data
     await fetch("http://localhost:8000/signout",{method:"POST",credentials:"include"})
-    navigate("/login")
+    navigate("/signin")
   };
 
 

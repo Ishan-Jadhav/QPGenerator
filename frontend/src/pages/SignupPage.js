@@ -28,7 +28,7 @@ function SignupPage() {
     const data = await response.json();
 
     if (data.status==="ok") {
-      navigate('/login'); // Redirect to login page after successful signup
+      navigate('/signin'); // Redirect to login page after successful signup
     } else {
       setError(data.message || 'Signup failed. Please try again.');
     }
@@ -63,7 +63,7 @@ function SignupPage() {
           <button type="submit">Sign Up</button>
         </form>
         <p>
-          Already have an account? <a href="/login">Log in</a>
+          Already have an account? <a href="/signin">Log in</a>
         </p>
       </div>
     </div>

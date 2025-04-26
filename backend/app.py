@@ -386,7 +386,7 @@ def signup(user:User):
     except sqlite3.IntegrityError:
         raise HTTPException(status_code=400, detail="Email already registered")
     
-@app.post("/login")
+@app.post("/signin")
 def login(user:User):
     username=user.username
     password=user.password

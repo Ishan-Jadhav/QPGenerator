@@ -23,11 +23,11 @@ function ChatPage() {
   useEffect(() => {
         async function auth() {
         
-          const res = await fetch("/auth-status", {
+          const res = await fetch("http://localhost:8000/auth-status", {
             method: "POST",
             credentials: "include",
           });
-          if (!res.ok) navigate("/login");
+          if (!res.ok) navigate("/signin");
           const data = await res.json();
           setUser(data.user);
       }
@@ -184,7 +184,7 @@ function ChatPage() {
   
   const signout=async ()=>{
       await fetch("http://localhost:8000/signout",{method:"POST",credentials:"include"})
-      navigate("/login")
+      navigate("/signin")
   }
 
   return (
