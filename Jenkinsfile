@@ -6,7 +6,7 @@ pipeline {
             steps {
 
                 sh """
-
+                git checkout main
                 docker compose up
 
                 """
