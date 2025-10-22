@@ -4,9 +4,8 @@ pipeline {
     stages {
         stage("Build") {
             steps {
-
-                sh """
                 checkout main
+                sh """
                 docker compose up
 
                 """
